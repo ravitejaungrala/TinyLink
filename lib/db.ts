@@ -14,9 +14,6 @@ export const sql = postgres(connectionString, {
   max_lifetime: 60 * 30,
   connect_timeout: 10,
   max: 10,
-  transform: {
-    undefined: null,
-  },
 })
 
 // Enhanced connection test function
@@ -24,8 +21,6 @@ export async function testConnection() {
   try {
     const result = await sql`SELECT version(), NOW() as server_time, current_database() as db_name`
     console.log('✅ Database connected successfully')
-    console.log('📊 Database:', result[0].db_name)
-    console.log('⏰ Server Time:', result[0].server_time)
     return {
       connected: true,
       database: result[0].db_name,
@@ -41,7 +36,7 @@ export async function testConnection() {
   }
 }
 
-// Initialize database tables with proper default values
+// Initialize database tables with error handling
 export async function initDB() {
   try {
     // Check if table exists first

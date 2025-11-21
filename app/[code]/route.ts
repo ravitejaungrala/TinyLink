@@ -14,7 +14,7 @@ export async function GET(
 
     console.log(`🔗 Redirect attempt for code: ${code}`)
 
-    // Get the link from database with proper error handling
+    // Get the link from database
     const links = await sql`
       SELECT * FROM links WHERE code = ${code} LIMIT 1
     `
@@ -34,7 +34,7 @@ export async function GET(
 
     console.log(`✅ Redirecting to: ${targetUrl}`)
 
-    // Update click count and last clicked time with better error handling
+    // Update click count and last clicked time
     try {
       const updateResult = await sql`
         UPDATE links 
@@ -47,12 +47,9 @@ export async function GET(
       
       if (updateResult && updateResult.length > 0) {
         console.log(`📊 Successfully updated click count for ${code}: ${updateResult[0].clicks} total clicks`)
-      } else {
-        console.log(`⚠️ Click count update completed but no result returned for ${code}`)
       }
     } catch (updateError) {
       console.error('❌ Failed to update click count:', updateError)
-      // Don't fail the redirect if click count update fails
     }
 
     // Perform redirect

@@ -18,7 +18,7 @@ export default function LinkTable({ refresh }: LinkTableProps) {
   useEffect(() => {
     const interval = setInterval(() => {
       setLastUpdate(Date.now())
-    }, 10000) // Refresh every 10 seconds
+    }, 10000)
 
     return () => clearInterval(interval)
   }, [])
@@ -71,7 +71,6 @@ export default function LinkTable({ refresh }: LinkTableProps) {
     link.target_url.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // Calculate total clicks
   const totalClicks = links.reduce((sum, link) => sum + link.clicks, 0)
 
   if (loading) {

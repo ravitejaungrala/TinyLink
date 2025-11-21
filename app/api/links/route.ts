@@ -43,14 +43,15 @@ export async function POST(request: NextRequest) {
     const validatedData = linkSchema.safeParse(body)
     
     if (!validatedData.success) {
-      const firstError = validatedData.error.errors[0]
+      const firstError = validatedData.error.issues[0]
       return NextResponse.json(
         { error: firstError?.message || 'Invalid input' },
         { status: 400 }
       )
     }
     
-    let { target_url, code } = validatedData.data
+    let { target_url } = validatedData.data
+    let { code } = validatedData.data
     
     // Ensure URL has protocol
     if (!target_url.startsWith('http://') && !target_url.startsWith('https://')) {
@@ -58,13 +59,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Generate random code if not provided
+    let finalCode: string
     if (!code) {
       let attempts = 0
       let isUnique = false
       
       while (!isUnique && attempts < 10) {
-        code = generateCode()
-        isUnique = !(await codeExists(code))
+        finalCode = generateCode()
+        isUnique = !(await codeExists(finalCode))
         attempts++
       }
       
@@ -75,8 +77,9 @@ export async function POST(request: NextRequest) {
         )
       }
     } else {
+      finalCode = code
       // Check if custom code already exists
-      if (await codeExists(code)) {
+      if (await codeExists(finalCode)) {
         return NextResponse.json(
           { error: 'Code already exists' },
           { status: 409 }
@@ -84,10 +87,10 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Insert new link with explicit click count initialization
+    // Insert new link - now finalCode is guaranteed to be a string
     const result = await sql`
       INSERT INTO links (code, target_url, clicks) 
-      VALUES (${code}, ${target_url}, 0)
+      VALUES (${finalCode}, ${target_url}, 0)
       RETURNING *
     `
     
