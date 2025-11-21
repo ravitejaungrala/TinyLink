@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    
+    "prebuild": "next telemetry disable",
+    "build": "node --max-old-space-size=4096 ./node_modules/.bin/next build",
+  
     "start": "next start",
     "lint": "eslint"
   },
