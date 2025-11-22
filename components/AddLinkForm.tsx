@@ -37,12 +37,18 @@ export default function AddLinkForm({ onLinkAdded }: AddLinkFormProps) {
         throw new Error(data.error || 'Failed to create link')
       }
 
-      setSuccess(`Link created successfully! Your short URL is: ${window.location.origin}/${data.code}`)
+      setSuccess(`✅ Link created successfully! Your short URL is: ${window.location.origin}/${data.code}`)
       setTargetUrl('')
       setCustomCode('')
       onLinkAdded()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
+      const errorMessage = err instanceof Error ? err.message : 'Something went wrong'
+      setError(errorMessage)
+      
+      // Show specific message for database errors
+      if (errorMessage.includes('Database not configured')) {
+        setError('Database connection is not configured. Please check your environment variables.')
+      }
     } finally {
       setLoading(false)
     }
@@ -50,7 +56,10 @@ export default function AddLinkForm({ onLinkAdded }: AddLinkFormProps) {
 
   return (
     <div className="form-container">
-      <h2 className="form-title">Create New Short Link</h2>
+      <h2 className="form-title">
+        <span>✨</span>
+        Create Short Link
+      </h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="form-group">
           <label htmlFor="targetUrl" className="form-label">
@@ -105,7 +114,17 @@ export default function AddLinkForm({ onLinkAdded }: AddLinkFormProps) {
           disabled={loading}
           className="btn btn-primary btn-full"
         >
-          {loading ? 'Creating...' : 'Create Short Link'}
+          {loading ? (
+            <>
+              <span className="loading-pulse" style={{ width: '16px', height: '16px', borderRadius: '50%' }}></span>
+              Creating...
+            </>
+          ) : (
+            <>
+              <span>🚀</span>
+              Create Short Link
+            </>
+          )}
         </button>
       </form>
     </div>

@@ -3,20 +3,40 @@ import postgres from 'postgres'
 // Use the connection string from environment variables
 const connectionString = process.env.DATABASE_URL
 
-if (!connectionString) {
-  throw new Error('DATABASE_URL is not set in environment variables. Please check your .env.local file.')
+// Enhanced database configuration with better error handling
+let sql: any = null
+
+if (connectionString) {
+  try {
+    sql = postgres(connectionString, {
+      ssl: { rejectUnauthorized: false },
+      idle_timeout: 20,
+      max_lifetime: 60 * 30,
+      connect_timeout: 10,
+      max: 5,
+      onnotice: () => {}, // Suppress notices
+      transform: {
+        undefined: null,
+      },
+    })
+    console.log('✅ Database connection configured')
+  } catch (error) {
+    console.error('❌ Failed to configure database connection:', error)
+    sql = null
+  }
+} else {
+  console.warn('⚠️ DATABASE_URL is not set')
 }
 
-// Configure postgres for Neon
-export const sql = postgres(connectionString, {
-  ssl: 'require',
-  idle_timeout: 20,
-  max_lifetime: 60 * 30,
-  connect_timeout: 10,
-})
-
-// Test connection function
+// Enhanced connection test function
 export async function testConnection() {
+  if (!sql) {
+    return {
+      connected: false,
+      error: 'Database not configured - DATABASE_URL is missing or invalid'
+    }
+  }
+
   try {
     const result = await sql`SELECT version(), NOW() as server_time, current_database() as db_name`
     console.log('✅ Database connected successfully')
@@ -26,18 +46,23 @@ export async function testConnection() {
       serverTime: result[0].server_time,
       version: result[0].version
     }
-  } catch (error) {
-    console.error('❌ Database connection failed:', error)
+  } catch (error: any) {
+    console.error('❌ Database connection failed:', error.message)
     return {
       connected: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error.message || 'Unknown database error'
     }
   }
 }
 
-// Initialize database
+// Initialize database tables with error handling
 export async function initDB() {
+  if (!sql) {
+    throw new Error('Database not configured - DATABASE_URL is missing')
+  }
+
   try {
+    // Check if table exists first
     const tableExists = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -59,8 +84,10 @@ export async function initDB() {
         )
       `
       
+      // Create indexes for better performance
       await sql`CREATE INDEX idx_links_code ON links(code)`
       await sql`CREATE INDEX idx_links_created_at ON links(created_at DESC)`
+      await sql`CREATE INDEX idx_links_last_clicked ON links(last_clicked DESC)`
       
       console.log('✅ Database tables initialized successfully')
     } else {
@@ -86,6 +113,10 @@ export function generateCode(): string {
 
 // Check if a code already exists
 export async function codeExists(code: string): Promise<boolean> {
+  if (!sql) {
+    throw new Error('Database not configured - DATABASE_URL is missing')
+  }
+
   try {
     const result = await sql`
       SELECT 1 FROM links WHERE code = ${code} LIMIT 1
@@ -96,3 +127,6 @@ export async function codeExists(code: string): Promise<boolean> {
     return false
   }
 }
+
+// Export the sql instance
+export { sql }

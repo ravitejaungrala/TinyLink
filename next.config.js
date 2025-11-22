@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // No experimental features to avoid warnings
+  output: 'standalone',
+  experimental: {
+    serverComponentsExternalPackages: ['postgres'],
+  },
 }
 
 module.exports = nextConfig

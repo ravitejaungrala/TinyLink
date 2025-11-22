@@ -5,9 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "db:init": "tsx scripts/init-db.ts",
-    "db:test": "tsx scripts/test-connection.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "next": "14.0.0",
@@ -20,7 +18,9 @@
     "@types/node": "^20.8.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "typescript": "^5.2.0",
-    "tsx": "^4.6.0"
+    "typescript": "^5.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

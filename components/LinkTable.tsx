@@ -26,14 +26,23 @@ export default function LinkTable({ refresh }: LinkTableProps) {
   const fetchLinks = useCallback(async () => {
     try {
       setLoading(true)
+      setError('')
       const response = await fetch('/api/links')
-      if (!response.ok) throw new Error('Failed to fetch links')
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.error || 'Failed to fetch links')
+      }
+      
       const data = await response.json()
       setLinks(data)
-      setError('')
     } catch (err) {
-      setError('Failed to load links')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load links'
+      setError(errorMessage)
       console.error('Error fetching links:', err)
+      
+      // Clear links on error
+      setLinks([])
     } finally {
       setLoading(false)
     }
@@ -95,22 +104,28 @@ export default function LinkTable({ refresh }: LinkTableProps) {
           <h2 className="table-title">
             <span>📊</span>
             Your Links
-            <span className="click-badge" style={{ marginLeft: '0.5rem' }}>
-              {links.length} links
-            </span>
-            <span className="click-badge" style={{ 
-              marginLeft: '0.5rem', 
-              background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-              color: '#92400e',
-              borderColor: '#fde68a'
-            }}>
-              {totalClicks} total clicks
-            </span>
+            {links.length > 0 && (
+              <>
+                <span className="click-badge" style={{ marginLeft: '0.5rem' }}>
+                  {links.length} links
+                </span>
+                <span className="click-badge" style={{ 
+                  marginLeft: '0.5rem', 
+                  background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
+                  color: '#92400e',
+                  borderColor: '#fde68a'
+                }}>
+                  {totalClicks} total clicks
+                </span>
+              </>
+            )}
           </h2>
           <div className="flex items-center gap-4">
-            <div className="text-xs text-muted">
-              Auto-refreshes every 10s
-            </div>
+            {links.length > 0 && (
+              <div className="text-xs text-muted">
+                Auto-refreshes every 10s
+              </div>
+            )}
             <div className="search-container">
               <input
                 type="text"
@@ -118,12 +133,14 @@ export default function LinkTable({ refresh }: LinkTableProps) {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
+                disabled={!!error}
               />
               <button
                 onClick={fetchLinks}
                 className="btn btn-secondary"
+                disabled={loading}
               >
-                🔄 Refresh
+                {loading ? '🔄' : '🔃'} Refresh
               </button>
             </div>
           </div>
@@ -132,11 +149,21 @@ export default function LinkTable({ refresh }: LinkTableProps) {
 
       {error && (
         <div className="alert alert-error" style={{ margin: '1.5rem' }}>
-          {error}
+          <div className="font-semibold">Database Connection Error</div>
+          <div>{error}</div>
+          <div className="text-xs mt-2">
+            Please check your DATABASE_URL environment variable and ensure your Neon database is active.
+          </div>
+          <button 
+            onClick={fetchLinks}
+            className="btn btn-sm btn-secondary mt-2"
+          >
+            Try Again
+          </button>
         </div>
       )}
 
-      {filteredLinks.length === 0 ? (
+      {!error && filteredLinks.length === 0 && (
         <div className="empty-state">
           {links.length === 0 ? (
             <div>
@@ -152,7 +179,9 @@ export default function LinkTable({ refresh }: LinkTableProps) {
             </div>
           )}
         </div>
-      ) : (
+      )}
+
+      {!error && filteredLinks.length > 0 && (
         <div className="overflow-x-auto">
           <table className="table">
             <thead>

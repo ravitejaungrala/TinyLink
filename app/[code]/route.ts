@@ -6,13 +6,15 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> }
 ) {
   try {
+    if (!sql) {
+      return new NextResponse('Database not configured', { status: 503 })
+    }
+
     const { code } = await params
     
     if (!code) {
       return new NextResponse('Code parameter is required', { status: 400 })
     }
-
-    console.log(`🔗 Redirect attempt for code: ${code}`)
 
     // Get the link from database
     const links = await sql`
@@ -20,7 +22,6 @@ export async function GET(
     `
     
     if (!links || links.length === 0) {
-      console.log(`❌ Link not found for code: ${code}`)
       return new NextResponse('Link not found', { status: 404 })
     }
     
@@ -28,28 +29,21 @@ export async function GET(
     const targetUrl = link.target_url
     
     if (!targetUrl) {
-      console.log(`❌ Target URL is empty for code: ${code}`)
       return new NextResponse('Invalid target URL', { status: 500 })
     }
 
-    console.log(`✅ Redirecting to: ${targetUrl}`)
-
     // Update click count and last clicked time
     try {
-      const updateResult = await sql`
+      await sql`
         UPDATE links 
         SET 
           clicks = COALESCE(clicks, 0) + 1, 
           last_clicked = NOW()
         WHERE code = ${code}
-        RETURNING clicks, last_clicked
       `
-      
-      if (updateResult && updateResult.length > 0) {
-        console.log(`📊 Successfully updated click count for ${code}: ${updateResult[0].clicks} total clicks`)
-      }
     } catch (updateError) {
-      console.error('❌ Failed to update click count:', updateError)
+      console.error('Failed to update click count:', updateError)
+      // Don't fail the redirect if click count update fails
     }
 
     // Perform redirect

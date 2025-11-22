@@ -4,6 +4,16 @@ import { linkSchema } from '@/lib/utils'
 
 export async function GET() {
   try {
+    if (!sql) {
+      return NextResponse.json(
+        { 
+          error: 'Database not configured',
+          message: 'Please check your DATABASE_URL environment variable'
+        },
+        { status: 503 }
+      )
+    }
+
     const links = await sql`
       SELECT 
         id,
@@ -19,10 +29,26 @@ export async function GET() {
     `
     
     return NextResponse.json(links)
-  } catch (error) {
-    console.error('Failed to fetch links:', error)
+  } catch (error: any) {
+    console.error('Failed to fetch links:', error.message)
+    
+    // Handle specific database connection errors
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed',
+          message: 'Cannot connect to the database server. Please check your connection string and network.',
+          details: error.message
+        },
+        { status: 503 }
+      )
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch links' },
+      { 
+        error: 'Failed to fetch links',
+        message: error.message || 'Unknown error occurred'
+      },
       { status: 500 }
     )
   }
@@ -30,13 +56,22 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!sql) {
+      return NextResponse.json(
+        { 
+          error: 'Database not configured',
+          message: 'Please check your DATABASE_URL environment variable'
+        },
+        { status: 503 }
+      )
+    }
+
     const body = await request.json()
     
     // Validate the request body
     const validatedData = linkSchema.safeParse(body)
     
     if (!validatedData.success) {
-      // FIXED: Use issues array instead of errors
       const firstError = validatedData.error.issues[0]
       return NextResponse.json(
         { error: firstError?.message || 'Invalid input' },
@@ -100,10 +135,25 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(result[0], { status: 201 })
   } catch (error: any) {
-    console.error('Failed to create link:', error)
+    console.error('Failed to create link:', error.message)
+    
+    // Handle specific database connection errors
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed',
+          message: 'Cannot connect to the database server. Please check your connection string and network.',
+          details: error.message
+        },
+        { status: 503 }
+      )
+    }
     
     return NextResponse.json(
-      { error: 'Failed to create link: ' + (error.message || 'Unknown error') },
+      { 
+        error: 'Failed to create link',
+        message: error.message || 'Unknown error occurred'
+      },
       { status: 500 }
     )
   }
