@@ -32,18 +32,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     
-    if (!body.target_url) {
-      return NextResponse.json(
-        { error: 'target_url is required' },
-        { status: 400 }
-      )
-    }
-
-    // Validate the request body - COMPLETELY FIXED ZOD ERROR
+    // Validate the request body
     const validatedData = linkSchema.safeParse(body)
     
     if (!validatedData.success) {
-      // FIXED: Use issues instead of errors
+      // FIXED: Use issues array instead of errors
       const firstError = validatedData.error.issues[0]
       return NextResponse.json(
         { error: firstError?.message || 'Invalid input' },
@@ -51,8 +44,14 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    let { target_url } = validatedData.data
-    let { code } = validatedData.data
+    let { target_url, code } = validatedData.data
+    
+    if (!target_url) {
+      return NextResponse.json(
+        { error: 'target_url is required' },
+        { status: 400 }
+      )
+    }
     
     // Ensure URL has protocol
     if (!target_url.startsWith('http://') && !target_url.startsWith('https://')) {
@@ -64,20 +63,19 @@ export async function POST(request: NextRequest) {
     if (!code) {
       let attempts = 0
       let isUnique = false
-      finalCode = generateCode() // Initialize first
       
-      while (!isUnique && attempts < 10) {
+      do {
         finalCode = generateCode()
         isUnique = !(await codeExists(finalCode))
         attempts++
-      }
-      
-      if (!isUnique) {
-        return NextResponse.json(
-          { error: 'Failed to generate unique code' },
-          { status: 500 }
-        )
-      }
+        
+        if (attempts > 10) {
+          return NextResponse.json(
+            { error: 'Failed to generate unique code' },
+            { status: 500 }
+          )
+        }
+      } while (!isUnique)
     } else {
       finalCode = code
       // Check if custom code already exists
@@ -89,7 +87,7 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Insert new link - now finalCode is guaranteed to be a string
+    // Insert new link
     const result = await sql`
       INSERT INTO links (code, target_url, clicks) 
       VALUES (${finalCode}, ${target_url}, 0)

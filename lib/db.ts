@@ -7,16 +7,15 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set in environment variables. Please check your .env.local file.')
 }
 
-// Configure postgres for Neon with your specific connection details
+// Configure postgres for Neon
 export const sql = postgres(connectionString, {
   ssl: 'require',
   idle_timeout: 20,
   max_lifetime: 60 * 30,
   connect_timeout: 10,
-  max: 10,
 })
 
-// Enhanced connection test function
+// Test connection function
 export async function testConnection() {
   try {
     const result = await sql`SELECT version(), NOW() as server_time, current_database() as db_name`
@@ -36,10 +35,9 @@ export async function testConnection() {
   }
 }
 
-// Initialize database tables with error handling
+// Initialize database
 export async function initDB() {
   try {
-    // Check if table exists first
     const tableExists = await sql`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
@@ -61,10 +59,8 @@ export async function initDB() {
         )
       `
       
-      // Create indexes for better performance
       await sql`CREATE INDEX idx_links_code ON links(code)`
       await sql`CREATE INDEX idx_links_created_at ON links(created_at DESC)`
-      await sql`CREATE INDEX idx_links_last_clicked ON links(last_clicked DESC)`
       
       console.log('✅ Database tables initialized successfully')
     } else {

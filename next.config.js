@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Moved from experimental to root config
-  
+  // No experimental features to avoid warnings
 }
 
 module.exports = nextConfig

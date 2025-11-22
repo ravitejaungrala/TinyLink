@@ -13,8 +13,3 @@ export type Link = {
   last_clicked: string | null
   created_at: string
 }
-
-export type CreateLinkInput = {
-  target_url: string
-  code?: string
-}

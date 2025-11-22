@@ -16,11 +16,11 @@ export default function RootLayout({
         <div className="header">
           <div className="header-content">
             <a href="/" className="logo">
-              <span>🔗</span>
+              <span className="logo-icon">🔗</span>
               <span>TinyLink</span>
             </a>
             <div className="text-sm text-gray-500">
-              URL Shortener
+              Professional URL Shortener
             </div>
           </div>
         </div>
