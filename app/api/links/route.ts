@@ -39,10 +39,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate the request body
+    // Validate the request body - COMPLETELY FIXED ZOD ERROR
     const validatedData = linkSchema.safeParse(body)
     
     if (!validatedData.success) {
+      // FIXED: Use issues instead of errors
       const firstError = validatedData.error.issues[0]
       return NextResponse.json(
         { error: firstError?.message || 'Invalid input' },
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
     if (!code) {
       let attempts = 0
       let isUnique = false
+      finalCode = generateCode() // Initialize first
       
       while (!isUnique && attempts < 10) {
         finalCode = generateCode()
